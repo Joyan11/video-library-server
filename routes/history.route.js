@@ -1,78 +1,77 @@
 const express = require("express");
 const router = express.Router();
 const { History } = require("../models/history.model");
- const {getHistory} = require("../utils/history.fetch")
+const { getHistory } = require("../utils/history.fetch");
+
+const addHistory = async (req, res, next) => {
+  try {
+    const { userid } = req.user;
+    const { videos } = req.body;
+    const historyExist = await History.findOne({ user: userid });
+    if (historyExist) {
+      await History.findOneAndUpdate({user:userid}, { $addToSet: { videos: videos } }
+      );
+      return next()
+    } else {
+      const NewHistory = new History({ user: userid, videos });
+      await NewHistory.save();
+      return next()
+    }
+  } catch (error) {
+    console.log(error);
+  }
+}
 
 router.route("/")
   .get(async (req, res) => {
     try {
-      const data = await History.find({});
-      res.status(200).json({ success: true, historyData: data })
+      const { userid } = req.user;
+      const data = await getHistory(userid);
+      if(data){
+        res.status(200).json({ success: true, historyData: data });
+      }else{
+        res.status(400).json({
+          message:"History not created yet"
+        })
+      }
+     
     } catch (error) {
-      res.status(500).json({ success: false, message: "Internal Server Error", errorMessage: errorMessage.message })
+      res.status(500).json({ success: false, message: "Internal Server Error", errorMessage: error.message });
     }
   })
-  .post(async (req, res) => {
+  .post(addHistory, async (req, res) => {
     try {
-      const videos = req.body;
-      const NewHistory = new History(videos);
-      const savedHistory = await NewHistory.save();
-      const data = await getHistory(savedHistory._id);
+      const { userid } = req.user;
+      const data = await getHistory(userid);
       res.status(201).json({ success: true, historyData: data })
     } catch (error) {
       res.status(500).json({ success: false, message: "Unable to add videos to History", errorMessage: error.message })
     }
   })
-
-router.route("/:historyid")
-  .get(async (req, res) => {
-    try {
-      const { historyid } = req.params;
-      const data = await getHistory(historyid);
-      res.status(200).json({ success: true, historyData: data })
-    } catch (error) {
-      res.status(500).json({ success: false, message: "unable to get videos", errorMessage: error.message })
-    }
-
-  })
-  .post(async (req, res) => {
-    try {
-      const { videos } = req.body;
-      const { historyid } = req.params;
-      await History.findByIdAndUpdate(historyid, { $addToSet: { videos: videos } }
-      );
-      const data = await getHistory(historyid);
-
-      res.status(201).json({ success: true, historyData: data });
-    } catch (error) {
-      res.status(500).json({ success: false, message: "unable to add videos to History", errorMessage: error.message })
-    }
-  })
   .delete(async (req, res) => {
     try {
-      const { historyid } = req.params;
-      console.log(historyid)
-      await History.findByIdAndRemove({ _id: historyid })
+      const { userid } = req.user;
+      await History.findOneAndRemove({ user: userid })
       res.status(200).json({ success: true })
     } catch (error) {
       res.status(500).json({ success: false, message: "Unable to delete item from History", errorMessage: error.message })
     }
   })
 
-
-
-router.route("/:historyid/:videoid")
+router.route("/:videoid")
   .delete(async (req, res) => {
     try {
-      const { historyid, videoid } = req.params;
-      await History.findByIdAndUpdate(historyid, { $pull: { videos: { _id: videoid } } }
+      const { videoid } = req.params;
+      const { userid } = req.user;
+      console.log(userid,videoid)
+      await History.findOneAndUpdate({user:userid}, { $pull: { videos: { _id: videoid } } }
       );
-      const data = await getHistory(historyid);
+      const data = await getHistory(userid);
       res.status(200).json({ success: true, historyData: data })
     } catch (error) {
+      console.log(error.message)
       res.status(500).json({ success: false, message: "Unable to delete History", errorMessage: error.message })
     }
-
   })
 
 

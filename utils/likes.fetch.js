@@ -1,7 +1,5 @@
-const express = require("express");
 const { Likes } = require("../models/likes.model");
 
-const getLikes = async (likeid)=> await Likes.findById(likeid);
-console.log("running")
+const getLikes = async (userid) => await Likes.findOne({ user: userid });
 
-module.exports = {getLikes}
+module.exports = { getLikes }

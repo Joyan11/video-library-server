@@ -1,7 +1,6 @@
 const express = require("express");
 const { Watchlist } = require("../models/watchlist.model");
 
-const getWatchlist = async (wishlistid)=> await Watchlist.findById(wishlistid);
-console.log("running");
+const getWatchlist = async (userid) => await Watchlist.findOne({user:userid});
 
-module.exports = {getWatchlist}
+module.exports = { getWatchlist }
